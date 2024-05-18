@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f7f7f7;
+            margin: 0;
+            padding: 0;
+        }
+        h1, h2, h3 {
+            text-align: center;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        form {
+            margin-bottom: 20px;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+        }
+        input[type="text"],
+        input[type="password"],
+        textarea,
+        select {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button[type="submit"] {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button[type="submit"]:hover {
+            background-color: #45a049;
+        }
+        .delete-form {
+            display: inline;
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Admin Panel</h1>
+    
+    <h2>Manage Users</h2>
+    <form action="{{ url_for('create_user') }}" method="post">
+        <label for="username">Username:</label>
+        <input type="text" id="username" name="username" placeholder="Username" required>
+        <label for="password">Password:</label>
+        <input type="password" id="password" name="password" placeholder="Password" required>
+        <label for="role">Role:</label>
+        <select id="role" name="role" required>
+            <option value="student">Student</option>
+            <option value="instructor">Instructor</option>
+            <option value="admin">Admin</option>
+        </select>
+        <button type="submit">Create User</button>
+    </form>
+    
+    <h3>Users List</h3>
+    <table>
+        <tr>
+            <th>Username</th>
+            <th>Role</th>
+            <th>Action</th>
+        </tr>
+        {% for user in users %}
+        <tr>
+            <td>{{ user[1] }}</td>
+            <td>{{ user[2] }}</td>
+            <td>
+                <form action="{{ url_for('delete_user', user_id=user[0]) }}" class="delete-form" method="post">
+                    <button type="submit">Delete</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+    
+    <h2>Manage Courses</h2>
+    <form action="{{ url_for('create_course') }}" method="post">
+        <label for="course_name">Course Name:</label>
+        <input type="text" id="course_name" name="name" placeholder="Course Name" required>
+        <label for="course_description">Course Description:</label>
+        <textarea id="course_description" name="description" placeholder="Course Description"></textarea>
+        <label for="course_teacher">Teacher:</label>
+        <select id="course_teacher" name="teacher_id" required>
+            {% for user in users if user[2] == 'instructor' %}
+            <option value="{{ user[0] }}">{{ user[1] }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit">Create Course</button>
+    </form>
+    
+    <h3>Courses List</h3>
+    <table>
+        <tr>
+            <th>Course Name</th>
+            <th>Course Description</th>
+            <th>Teacher</th>
+            <th>Action</th>
+        </tr>
+        {% for course in courses %}
+        <tr>
+            <td>{{ course[1] }}</td>
+            <td>{{ course[2] }}</td>
+            <td>{{ course[3] }}</td>
+            <td>
+                <form action="{{ url_for('delete_course', course_id=course[0]) }}" class="delete-form" method="post">
+                    <button type="submit">Delete</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+    
+    <h2>Manage Lectures</h2>
+    <form action="{{ url_for('create_lecture') }}" method="post">
+        <label for="lecture_name">Lecture Name:</label>
+        <input type="text" id="lecture_name" name="name" placeholder="Lecture Name" required>
+        <label for="lecture_description">Lecture Description:</label>
+        <textarea id="lecture_description" name="description" placeholder="Lecture Description"></textarea>
+        <label for="lecture_course">Course:</label>
+        <select id="lecture_course" name="course_id" required>
+            {% for course in courses %}
+            <option value="{{ course[0] }}">{{ course[1] }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit">Create Lecture</button>
+    </form>
+    
+    <h3>Lectures List</h3>
+    <table>
+        <tr>
+            <th>Lecture Name</th>
+            <th>Lecture Description</th>
+            <th>Course</th>
+            <th>Action</th>
+        </tr>
+        {% for lecture in lectures %}
+        <tr>
+            <td>{{ lecture[1] }}</td>
+            <td>{{ lecture[2] }}</td>
+            <td>{{ lecture[3] }}</td>
+            <td>
+                <form action="{{ url_for('delete_lecture', lecture_id=lecture[0]) }}" class="delete-form" method="post">
+                    <button type="submit">Delete</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+    
+</body>
+</html>

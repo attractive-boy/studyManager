@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Panel</title>
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        table, th, td {
+            border: 1px solid black;
+        }
+        th, td {
+            padding: 15px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+    <h1>Welcome, {{ session.username }}</h1>
+    
+    <h2>Your Courses</h2>
+    <table>
+        <tr>
+            <th>Course Name</th>
+            <th>Description</th>
+            <th>Instructor</th>
+        </tr>
+        {% for course in courses %}
+        <tr>
+            <td>{{ course.name }}</td>
+            <td>{{ course.description }}</td>
+            <td>{{ course.teacher_name }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    
+    <h2>Your Assignments</h2>
+    <table>
+        <tr>
+            <th>Assignment Name</th>
+            <th>Description</th>
+            <th>Deadline</th>
+            <th>Course</th>
+        </tr>
+        {% for assignment in assignments %}
+        <tr>
+            <td>{{ assignment.name }}</td>
+            <td>{{ assignment.description }}</td>
+            <td>{{ assignment.deadline }}</td>
+            <td>{{ assignment.course_name }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    
+    <h2>Your Grades</h2>
+    <table>
+        <tr>
+            <th>Course</th>
+            <th>Assignment</th>
+            <th>Grade</th>
+            <th>Feedback</th>
+        </tr>
+        {% for grade in grades %}
+        <tr>
+            <td>{{ grade.course_name }}</td>
+            <td>{{ grade.assignment_name }}</td>
+            <td>{{ grade.grade }}</td>
+            <td>{{ grade.feedback }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>
