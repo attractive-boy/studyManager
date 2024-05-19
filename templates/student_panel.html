@@ -1,79 +1,254 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Student Panel</title>
     <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f3f3f3;
+        }
+
+        .container {
+            display: flex;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #fff;
+        }
+
+        .left-panel {
+            flex: 1;
+            padding-right: 20px;
+        }
+
+        .right-panel {
+            flex: 1;
+            padding-left: 20px;
+            border-left: 1px solid #ddd;
+        }
+
+        h1, h2, h3 {
+            text-align: center;
+        }
+
         table {
             width: 100%;
             border-collapse: collapse;
+            margin-bottom: 20px;
         }
+
         table, th, td {
-            border: 1px solid black;
+            border: 1px solid #ddd;
         }
+
         th, td {
-            padding: 15px;
+            padding: 12px;
             text-align: left;
         }
+
         th {
             background-color: #f2f2f2;
         }
+
+        button[type="submit"] {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            margin: 8px 0;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        button[type="submit"]:hover {
+            background-color: #45a049;
+        }
+
+        .search-container {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .search-container input[type="text"] {
+            padding: 10px;
+            font-size: 16px;
+            width: 80%;
+            box-sizing: border-box;
+        }
+
+        .search-container button {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .search-container button:hover {
+            background-color: #45a049;
+        }
+
+        .message-list {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .message-item {
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+            background-color: #f9f9f9;
+            margin-bottom: 10px;
+            border-radius: 4px;
+        }
+
+
+        .message-item small {
+            color: #888;
+            display: block;
+            margin-bottom: 10px;
+        }
+
+        .message-box {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: #f9f9f9;
+            margin-bottom: 20px;
+        }
+
+        form label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        form select, form textarea {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        form textarea {
+            resize: vertical;
+        }
     </style>
 </head>
+
 <body>
-    <h1>Welcome, {{ session.username }}</h1>
-    
-    <h2>Your Courses</h2>
-    <table>
-        <tr>
-            <th>Course Name</th>
-            <th>Description</th>
-            <th>Instructor</th>
-        </tr>
-        {% for course in courses %}
-        <tr>
-            <td>{{ course.name }}</td>
-            <td>{{ course.description }}</td>
-            <td>{{ course.teacher_name }}</td>
-        </tr>
-        {% endfor %}
-    </table>
-    
-    <h2>Your Assignments</h2>
-    <table>
-        <tr>
-            <th>Assignment Name</th>
-            <th>Description</th>
-            <th>Deadline</th>
-            <th>Course</th>
-        </tr>
-        {% for assignment in assignments %}
-        <tr>
-            <td>{{ assignment.name }}</td>
-            <td>{{ assignment.description }}</td>
-            <td>{{ assignment.deadline }}</td>
-            <td>{{ assignment.course_name }}</td>
-        </tr>
-        {% endfor %}
-    </table>
-    
-    <h2>Your Grades</h2>
-    <table>
-        <tr>
-            <th>Course</th>
-            <th>Assignment</th>
-            <th>Grade</th>
-            <th>Feedback</th>
-        </tr>
-        {% for grade in grades %}
-        <tr>
-            <td>{{ grade.course_name }}</td>
-            <td>{{ grade.assignment_name }}</td>
-            <td>{{ grade.grade }}</td>
-            <td>{{ grade.feedback }}</td>
-        </tr>
-        {% endfor %}
-    </table>
+    <div class="container">
+        <div class="left-panel">
+            <h1>Welcome, {{ session.username }}</h1>
+
+            <div class="search-container">
+                <form action="{{ url_for('search') }}" method="get">
+                    <input type="text" name="query" placeholder="Search for courses, lectures, or users" required>
+                    <button type="submit">Search</button>
+                </form>
+            </div>
+
+            <h2>Your Courses</h2>
+            <table>
+                <tr>
+                    <th>Course Name</th>
+                    <th>Description</th>
+                    <th>Instructor</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+                {% for course in available_courses %}
+                <tr>
+                    <td>{{ course[1] }}</td>
+                    <td>{{ course[2] }}</td>
+                    <td>{{ course[3] }}</td>
+                    <td>{{ 'available' if course[4] != '1' else 'not registered' }}</td>
+                    <td>
+                        {% if course[4] != '1' %}
+                            <span>Registered</span>
+                        {% else %}
+                            <form action="{{ url_for('register_course') }}" method="post">
+                                <input type="hidden" name="course_id" value="{{ course[0] }}">
+                                <button type="submit">Register</button>
+                            </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </table>
+
+            <h2>Your Assignments</h2>
+            <table>
+                <tr>
+                    <th>Assignment Name</th>
+                    <th>Description</th>
+                    <th>Deadline</th>
+                    <th>Course</th>
+                </tr>
+                {% for assignment in assignments %}
+                <tr>
+                    <td>{{ assignment.name }}</td>
+                    <td>{{ assignment.description }}</td>
+                    <td>{{ assignment.deadline }}</td>
+                    <td>{{ assignment.course_name }}</td>
+                </tr>
+                {% endfor %}
+            </table>
+
+            <h2>Your Grades</h2>
+            <table>
+                <tr>
+                    <th>Course</th>
+                    <th>Assignment</th>
+                    <th>Grade</th>
+                    <th>Feedback</th>
+                </tr>
+                {% for grade in grades %}
+                <tr>
+                    <td>{{ grade.course_name }}</td>
+                    <td>{{ grade.assignment_name }}</td>
+                    <td>{{ grade.grade }}</td>
+                    <td>{{ grade.feedback }}</td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+        <div class="right-panel">
+            <h2>Communication</h2>
+            <h3>Your Messages</h3>
+            <ul class="message-list">
+                {% for message in messages %}
+                <li class="message-item">
+                    <strong>From: {{ message[5] }}</strong> &nbsp; &nbsp;
+                    <span>{{message[3] }}</span>
+                </li>
+                {% endfor %}
+            </ul>
+
+            <form action="{{ url_for('send_message') }}" method="post">
+                <label for="recipient">Recipient:</label>
+                <select name="recipient" id="recipient" required>
+                    {% for teacher in teachers %}
+                    <option value="{{ teacher[0] }}">{{ teacher[1] }}</option>
+                    {% endfor %}
+                </select>
+                <label for="message">Message:</label>
+                <textarea name="message" id="message" rows="4" required></textarea>
+                <button type="submit">Send Message</button>
+            </form>
+        </div>
+    </div>
 </body>
+
 </html>

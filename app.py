@@ -1,5 +1,6 @@
+from datetime import datetime
 import os
-from flask import Flask, jsonify, render_template, request, redirect, url_for, session
+from flask import Flask, flash, jsonify, render_template, request, redirect, url_for, session
 import mysql.connector
 import hashlib
 
@@ -29,6 +30,7 @@ def login():
         if user:
             session['username'] = user[1]
             session['role'] = user[3]
+            session['user_id'] = user[0]
             return redirect(url_for('index'))
         else:
             return render_template('login.html', error="Invalid credentials")
@@ -75,7 +77,14 @@ def admin_panel():
     ''')
     lectures = cursor.fetchall()
 
-    return render_template('admin_panel.html', users=users, courses=courses, lectures=lectures)
+    # Fetch data for rendering admin panel (instructors, students, courses)
+    cursor.execute("SELECT * FROM users WHERE role = 'instructor'")
+    instructors = cursor.fetchall()
+    
+    cursor.execute("SELECT * FROM users WHERE role = 'student'")
+    students = cursor.fetchall()
+
+    return render_template('admin_panel.html', users=users, courses=courses, lectures=lectures,instructors=instructors, students=students)
 
 # User management routes
 @app.route('/create_user', methods=['POST'])
@@ -153,88 +162,85 @@ def instructor_panel():
     ''', (instructor_id,))
     lectures = cursor.fetchall()
 
-    return render_template('instructor_panel.html', courses=courses, students=students, lectures=lectures)
+    # Fetch assignments for the courses the instructor is teaching
+    cursor.execute('''
+        SELECT assignments.id, assignments.name, assignments.description, assignments.deadline, courses.name AS course_name
+        FROM assignments
+        JOIN courses ON assignments.course_id = courses.id
+        WHERE courses.teacher_id = %s
+    ''', (instructor_id,))
+    assignments = cursor.fetchall()
+    
+    # Fetch submissions for the assignments
+    cursor.execute('''
+        SELECT grades.id, grades.grade, grades.feedback, assignments.name AS assignment_name, users.username AS student_name
+        FROM grades
+        JOIN assignments ON grades.assignment_id = assignments.id
+        JOIN users ON grades.student_id = users.id
+        WHERE assignments.course_id IN (SELECT id FROM courses WHERE teacher_id = %s)
+    ''', (instructor_id,))
+    submissions = cursor.fetchall()
+    student = get_students()
+    messages = get_messages(session['user_id'])
+
+    return render_template('instructor_panel.html', courses=courses, students=students, lectures=lectures,messages=messages,student=student,assignments=assignments,submissions=submissions)
 
 @app.route('/create_lecture', methods=['POST'])
 def create_lecture():
     if 'username' not in session:
         return redirect(url_for('login'))
     else:
-        name = request.form['name']
-        description = request.form['description']
-        course_id = request.form['course_id']
-        cursor.execute("INSERT INTO lectures (name, description, course_id) VALUES (%s, %s, %s)", (name, description, course_id))
-        db.commit()
-        if session.get('role') == 'admin':
-            return redirect(url_for('admin_panel')) # Redirect to admin panel after creating lecture
-        else:
-            return redirect(url_for('instructor_panel')) # Redirect to instructor panel after creating lecture
-
-@app.route('/upload_resource', methods=['POST'])
-def upload_resource():
-    if 'username' not in session:
-        return redirect(url_for('login'))
-    else:
         try:
-            resource_file = request.files['resource_file']
-            if resource_file:
-                # Save the uploaded file to a specific directory
+            name = request.form['name']
+            description = request.form['description']
+            course_id = request.form['course_id']
+            
+            # Check if file_id exists in form data
+            if len(request.files) > 0:
+                resource_file = request.files.get("resource_file")
                 resource_dir = os.path.join(app.root_path, 'uploads')
                 if not os.path.exists(resource_dir):
                     os.makedirs(resource_dir)
                 resource_path = os.path.join(resource_dir, resource_file.filename)
                 resource_file.save(resource_path)
-                # Store the file path and lecture ID in the database
+                
+                # Store the file path in the database
                 cursor.execute("INSERT INTO files (file_path) VALUES (%s)", (resource_path,))
                 db.commit()
+                
                 # Get the ID of the inserted file
                 file_id = cursor.lastrowid
-                # Return the file ID as JSON response
-                return jsonify({'file_id': file_id})
+                cursor.execute("INSERT INTO lectures (name, description, course_id, file_id) VALUES (%s, %s, %s, %s)", (name, description, course_id, file_id))
             else:
-                return "No file uploaded"
+                cursor.execute("INSERT INTO lectures (name, description, course_id) VALUES (%s, %s, %s)", (name, description, course_id))
+            db.commit()
+            
+            if session.get('role') == 'admin':
+                return redirect(url_for('admin_panel')) # Redirect to admin panel after creating lecture
+            else:
+                return redirect(url_for('instructor_panel')) # Redirect to instructor panel after creating lecture
         except Exception as e:
-            # Handle any exceptions that occur during file upload or database operation
+            # Handle any exceptions that occur during database operation
             return jsonify({'error': str(e)})
-
-        
-@app.route('/student_panel')
-def student_panel():
-    if 'username' not in session or session['role'] != 'student':
+     
+@app.route('/register_course', methods=['POST'])
+def register_course():
+    if 'username' not in session:
         return redirect(url_for('login'))
     
-    student_id = session['username']
-    # Fetch courses the student is enrolled in
-    cursor.execute('''
-        SELECT courses.id, courses.name, courses.description, users.username AS teacher_name
-        FROM student_courses
-        JOIN courses ON student_courses.course_id = courses.id
-        JOIN users ON courses.teacher_id = users.id
-        WHERE student_courses.student_id = %s
-    ''', (student_id,))
-    courses = cursor.fetchall()
-
-    # Fetch assignments for the courses the student is enrolled in
-    cursor.execute('''
-        SELECT assignments.id, assignments.name, assignments.description, assignments.deadline, courses.name AS course_name
-        FROM assignments
-        JOIN courses ON assignments.course_id = courses.id
-        JOIN student_courses ON courses.id = student_courses.course_id
-        WHERE student_courses.student_id = %s AND assignments.deadline >= NOW()
-    ''', (student_id,))
-    assignments = cursor.fetchall()
-
-    # Fetch grades for the student
-    cursor.execute('''
-        SELECT grades.grade, grades.feedback, assignments.name AS assignment_name, courses.name AS course_name
-        FROM grades
-        JOIN assignments ON grades.assignment_id = assignments.id
-        JOIN courses ON assignments.course_id = courses.id
-        WHERE grades.student_id = %s
-    ''', (student_id,))
-    grades = cursor.fetchall()
-
-    return render_template('student_panel.html', courses=courses, assignments=assignments, grades=grades)
+    course_id = request.form['course_id']
+    student_id = session['user_id']
+    
+    try:
+        # 注册课程
+        cursor.execute("INSERT INTO student_courses (student_id, course_id) VALUES (%s, %s)", (student_id, course_id))
+        db.commit()
+        flash('Successfully registered for the course!')
+    except Exception as e:
+        db.rollback()
+        flash('Failed to register for the course. Please try again.')
+    
+    return redirect(url_for('student_panel'))
 
 # Register route
 @app.route('/register', methods=['GET', 'POST'])
@@ -258,6 +264,234 @@ def register():
     else:
         return render_template('register.html')
     
+@app.route('/search', methods=['GET'])
+def search():
+    if 'username' not in session:
+        return redirect(url_for('login'))
+    
+    query = request.args.get('query')
+    search_query = f"%{query}%"
+    
+    # 搜索课程
+    cursor.execute("""
+        SELECT c.id, c.name, c.description, u.username AS teacher_name 
+        FROM courses c 
+        JOIN users u ON c.teacher_id = u.id 
+        WHERE c.name LIKE %s OR c.description LIKE %s
+    """, (search_query, search_query))
+    courses = cursor.fetchall()
+    
+    # 搜索讲座
+    cursor.execute("""
+        SELECT l.id, l.name, l.description, c.name AS course_name 
+        FROM lectures l 
+        JOIN courses c ON l.course_id = c.id 
+        WHERE l.name LIKE %s OR l.description LIKE %s
+    """, (search_query, search_query))
+    lectures = cursor.fetchall()
+    
+    # 搜索用户
+    cursor.execute("""
+        SELECT id, username 
+        FROM users 
+        WHERE username LIKE %s
+    """, (search_query,))
+    users = cursor.fetchall()
+    
+    return render_template('search_results.html', query=query, courses=courses, lectures=lectures, users=users)
+
+# 查询当前用户的课程、作业、成绩和教师列表
+def get_student_info(student_id):
+
+    # 查询课程
+    cursor.execute('''
+        SELECT courses.id, courses.name, courses.description, users.username AS teacher_name
+        FROM student_courses
+        JOIN courses ON student_courses.course_id = courses.id
+        JOIN users ON courses.teacher_id = users.id
+        WHERE student_courses.student_id = %s
+    ''', (student_id,))
+    courses = cursor.fetchall()
+
+    # 查询作业
+    cursor.execute('''
+        SELECT assignments.id, assignments.name, assignments.description, assignments.deadline, courses.name AS course_name
+        FROM assignments
+        JOIN courses ON assignments.course_id = courses.id
+        JOIN student_courses ON courses.id = student_courses.course_id
+        WHERE student_courses.student_id = %s AND assignments.deadline >= NOW()
+    ''', (student_id,))
+    assignments = cursor.fetchall()
+
+    # 查询成绩
+    cursor.execute('''
+        SELECT grades.grade, grades.feedback, assignments.name AS assignment_name, courses.name AS course_name
+        FROM grades
+        JOIN assignments ON grades.assignment_id = assignments.id
+        JOIN courses ON assignments.course_id = courses.id
+        WHERE grades.student_id = %s
+    ''', (student_id,))
+    grades = cursor.fetchall()
+
+    return courses, assignments, grades
+
+# 获取所有可用的课程
+def get_courses_with_registration_status(student_id):
+    cursor.execute('''
+        SELECT c.id, c.name, c.description, u.username AS teacher_name,
+               CASE WHEN sc.student_id IS NOT NULL THEN TRUE ELSE FALSE END AS is_registered
+        FROM courses c
+        LEFT JOIN student_courses sc ON c.id = sc.course_id AND sc.student_id = %s
+        JOIN users u ON c.teacher_id = u.id
+    ''', (student_id,))
+    courses = cursor.fetchall()
+
+    return courses
+
+# 获取教师列表
+def get_teachers():
+
+    cursor.execute("SELECT * FROM users WHERE role = 'instructor'")
+    teachers = cursor.fetchall()
+
+    return teachers
+
+def get_students():
+    cursor.execute("SELECT * FROM users WHERE role = 'student'")
+    students = cursor.fetchall()
+
+    return students
+
+def get_students():
+    cursor.execute("SELECT * FROM users WHERE role = 'student'")
+    students = cursor.fetchall()
+
+    return students
+
+# 查询用户收到的消息
+def get_messages(user_id):
+
+    query = """
+        SELECT messages.*, users.username AS sender_name
+        FROM messages
+        JOIN users ON messages.sender_id = users.id
+        WHERE messages.recipient_id = %s
+    """
+    cursor.execute(query, (user_id,))
+    messages = cursor.fetchall()
+
+    return messages
+
+# 处理发送消息的表单提交
+@app.route('/send_message', methods=['POST'])
+def send_message():
+    if 'username' not in session:
+        return redirect(url_for('login'))
+    
+    sender_id = session['user_id']
+    recipient_id = request.form['recipient']
+    message_content = request.form['message']
+    timestamp = datetime.now()
+
+    # Fetch user role from the database
+    cursor.execute("SELECT role FROM users WHERE id = %s", (sender_id,))
+    sender_role = cursor.fetchone()[0]
+
+
+    cursor.execute("INSERT INTO messages (sender_id, recipient_id, content, timestamp) VALUES (%s, %s, %s, %s)",
+                   (sender_id, recipient_id, message_content, timestamp))
+    db.commit()
+
+    if sender_role == 'instructor':
+        return redirect(url_for('instructor_panel'))
+    else:
+        return redirect(url_for('student_panel'))
+
+# 学生面板页面
+@app.route('/student_panel')
+def student_panel():
+    if 'username' not in session:
+        return redirect(url_for('login'))
+
+    student_id = session['user_id']
+    courses, assignments, grades = get_student_info(student_id)
+    available_courses = get_courses_with_registration_status(student_id)
+    teachers = get_teachers()
+    messages = get_messages(student_id)
+
+    return render_template('student_panel.html', courses=courses, assignments=assignments, grades=grades,
+                           available_courses=available_courses, teachers=teachers, messages=messages)
+
+# Route for assigning courses to instructors
+@app.route('/assign_course_to_instructor', methods=['POST'])
+def assign_course_to_instructor():
+    instructor_id = request.form['instructor_id']
+    course_id = request.form['course_id']
+
+    # Update the course record in the database to assign it to the instructor
+    cursor.execute("UPDATE courses SET instructor_id = %s WHERE id = %s", (instructor_id, course_id))
+    db.commit()
+
+    return redirect(url_for('admin_panel'))
+
+# Route for registering students for courses
+@app.route('/register_student_for_course', methods=['POST'])
+def register_student_for_course():
+    student_id = request.form['student_id']
+    course_id = request.form['course_id']
+
+    # Insert a record into the student_course table to register the student for the course
+    cursor.execute("INSERT INTO student_course (student_id, course_id) VALUES (%s, %s)", (student_id, course_id))
+    db.commit()
+
+    return redirect(url_for('admin_panel'))
+
+
+@app.route('/create_assignment', methods=['POST'])
+def create_assignment():
+    if 'username' not in session:
+        return redirect(url_for('login'))
+    else:
+        try:
+            name = request.form['name']
+            description = request.form['description']
+            deadline = request.form['deadline']
+            course_id = request.form['course_id']
+            
+            # 在数据库中插入作业信息
+            cursor.execute("INSERT INTO assignments (name, description, deadline, course_id) VALUES (%s, %s, %s, %s)", (name, description, deadline, course_id))
+            db.commit()
+            
+            if session.get('role') == 'admin':
+                return redirect(url_for('admin_panel')) # 创建作业成功后重定向到管理员面板页面
+            else:
+                return redirect(url_for('instructor_panel')) # 创建作业成功后重定向到讲师面板页面
+        except Exception as e:
+            # 处理数据库操作异常
+            return jsonify({'error': str(e)})
+
+@app.route('/grade_submission', methods=['POST'])
+def grade_submission():
+    if 'username' not in session:
+        return redirect(url_for('login'))
+    else:
+        try:
+            student_id = request.form['student_id']
+            assignment_id = request.form['assignment_id']
+            grade = request.form['grade']
+            feedback = request.form['feedback']
+            
+            # 在数据库中插入评分和反馈信息
+            cursor.execute("INSERT INTO grades (student_id, assignment_id, grade, feedback) VALUES (%s, %s, %s, %s)", (student_id, assignment_id, grade, feedback))
+            db.commit()
+            
+            if session.get('role') == 'admin':
+                return redirect(url_for('admin_panel')) # 提交评分成功后重定向到管理员面板页面
+            else:
+                return redirect(url_for('instructor_panel')) # 提交评分成功后重定向到讲师面板页面
+        except Exception as e:
+            # 处理数据库操作异常
+            return jsonify({'error': str(e)})
 
 
 if __name__ == '__main__':

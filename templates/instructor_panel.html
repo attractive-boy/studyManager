@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,40 +12,60 @@
             padding: 0;
             background-color: #f3f3f3;
         }
+
         .container {
-            max-width: 800px;
+            width: 1200px;
             margin: 20px auto;
             padding: 20px;
             border: 1px solid #ddd;
             border-radius: 5px;
             background-color: #fff;
+            display: flex;
+            flex-direction: row;
         }
-        h1, h2 {
+
+        h1,
+        h2 {
             text-align: center;
         }
+
         table {
             width: 100%;
             border-collapse: collapse;
             margin-bottom: 20px;
         }
-        table, th, td {
+
+        table,
+        th,
+        td {
             border: 1px solid #ddd;
         }
-        th, td {
+
+        th,
+        td {
             padding: 12px;
             text-align: left;
         }
+
         th {
             background-color: #f2f2f2;
         }
+
         form {
             margin-bottom: 20px;
         }
+
         label {
             display: block;
             margin-bottom: 5px;
         }
-        input[type="text"], textarea, select, input[type="file"] {
+
+        input[type="text"],
+        input[type="datetime-local"],
+        input[type="number"],
+        textarea,
+        select,
+        input[type="file"] {
             width: calc(100% - 24px);
             padding: 10px;
             margin-bottom: 10px;
@@ -52,6 +73,7 @@
             border-radius: 4px;
             box-sizing: border-box;
         }
+
         button[type="submit"] {
             background-color: #4CAF50;
             color: white;
@@ -63,63 +85,185 @@
             width: 100%;
             font-size: 16px;
         }
+
         button[type="submit"]:hover {
             background-color: #45a049;
         }
+
+        .search-container {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .search-container input[type="text"] {
+            padding: 10px;
+            font-size: 16px;
+            width: 80%;
+            box-sizing: border-box;
+        }
+
+        .search-container button {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            display: inline-block;
+            width: 15%;
+        }
+
+        .search-container button:hover {
+            background-color: #45a049;
+        }
+
+        .left {
+            width: 800px;
+            margin-right: 50px;
+        }
+
+        .right {
+            width: 500px;
+        }
+
+        .right-panel {
+            flex: 1;
+            padding-left: 20px;
+            border-left: 1px solid #ddd;
+        }
     </style>
 </head>
+
 <body>
     <div class="container">
-        <h1>Welcome, {{ session.username }}</h1>
-        
-        <h2>Your Courses</h2>
-        <table>
-            <tr>
-                <th>Course Name</th>
-                <th>Description</th>
-            </tr>
-            {% for course in courses %}
-            <tr>
-                <td>{{ course[1] }}</td>
-                <td>{{ course[2] }}</td>
-            </tr>
-            {% endfor %}
-        </table>
-        
-        <h2>Student List</h2>
-        <table>
-            <tr>
-                <th>Student Name</th>
-                <th>Course</th>
-            </tr>
-            {% for student in students %}
-            <tr>
-                <td>{{ student.username }}</td>
-                <td>{{ student.name }}</td>
-            </tr>
-            {% endfor %}
-        </table>
-        
-        <h2>Manage Lectures</h2>
-        <form action="{{ url_for('create_lecture') }}" method="post">
-            <label for="lecture_name">Lecture Name:</label>
-            <input type="text" id="lecture_name" name="name" placeholder="Lecture Name" required><br>
-            <label for="lecture_description">Lecture Description:</label>
-            <textarea id="lecture_description" name="description" placeholder="Lecture Description" rows="4" required></textarea><br>
-            <label for="lecture_course">Course:</label>
-            <select id="lecture_course" name="course_id" required>
+        <div class="left">
+            <h1>Welcome, {{ session.username }}</h1>
+            <div class="search-container">
+                <form action="{{ url_for('search') }}" method="get">
+                    <input type="text" name="query" placeholder="Search for courses, lectures, or users" required>
+                    <button type="submit">Search</button>
+                </form>
+            </div>
+            <h2>Your Courses</h2>
+            <table>
+                <tr>
+                    <th>Course Name</th>
+                    <th>Description</th>
+                </tr>
                 {% for course in courses %}
-                <option value="{{ course[0] }}">{{ course[1] }}</option>
+                <tr>
+                    <td>{{ course[1] }}</td>
+                    <td>{{ course[2] }}</td>
+                </tr>
                 {% endfor %}
-            </select><br>
-            <button type="submit">Create Lecture</button>
-        </form>
-        
-        <form action="{{ url_for('upload_resource') }}" method="post" enctype="multipart/form-data">
-            <label for="resource_file">Upload Resource:</label>
-            <input type="file" id="resource_file" name="resource_file" required><br>
-            <button type="submit">Upload Resource</button>
-        </form>
+            </table>
+
+            <h2>Student List</h2>
+            <table>
+                <tr>
+                    <th>Student Name</th>
+                    <th>Course</th>
+                </tr>
+                {% for student in students %}
+                <tr>
+                    <td>{{ student.username }}</td>
+                    <td>{{ student.name }}</td>
+                </tr>
+                {% endfor %}
+            </table>
+
+            <h2>Manage Lectures</h2>
+            <form action="{{ url_for('create_lecture') }}" method="post" enctype="multipart/form-data">
+                <label for="lecture_name">Lecture Name:</label>
+                <input type="text" id="lecture_name" name="name" placeholder="Lecture Name" required><br>
+                <label for="lecture_description">Lecture Description:</label>
+                <textarea id="lecture_description" name="description" placeholder="Lecture Description" rows="4"
+                    required></textarea><br>
+                <label for="lecture_course">Course:</label>
+                <select id="lecture_course" name="course_id" required>
+                    {% for course in courses %}
+                    <option value="{{ course[0] }}">{{ course[1] }}</option>
+                    {% endfor %}
+                </select><br>
+                <label for="resource_file">Upload Resource:</label>
+                <input type="file" id="resource_file" name="resource_file" required><br>
+                <button type="submit">Create Lecture</button>
+            </form>
+
+            <h2>Create Assignment</h2>
+            <form action="{{ url_for('create_assignment') }}" method="post">
+                <label for="assignment_name">Assignment Name:</label>
+                <input type="text" id="assignment_name" name="name" placeholder="Assignment Name" required><br>
+                <label for="assignment_description">Assignment Description:</label>
+                <textarea id="assignment_description" name="description" placeholder="Assignment Description" rows="4"
+                    required></textarea><br>
+                <label for="assignment_deadline">Deadline:</label>
+                <input type="datetime-local" id="assignment_deadline" name="deadline" required><br>
+                <label for="assignment_course">Course:</label>
+                <select id="assignment_course" name="course_id" required>
+                    {% for course in courses %}
+                    <option value="{{ course[0] }}">{{ course[1] }}</option>
+                    {% endfor %}
+                </select><br>
+                <button type="submit">Create Assignment</button>
+            </form>
+
+            <h2>Grade Submission</h2>
+            <form action="{{ url_for('grade_submission') }}" method="post">
+                <label for="student_id">Student:</label>
+                <select id="student_id" name="student_id" required>
+                    {% for stu in student %}
+                    <option value="{{ stu[0] }}">{{ stu[1] }}</option>
+                    {% endfor %}
+                </select><br>
+                <label for="assignment_id">Assignment:</label>
+                <select id="assignment_id" name="assignment_id" required>
+                    {% for assignment in assignments %}
+                    <option value="{{ assignment.id }}">{{ assignment.name }}</option>
+                    {% endfor %}
+                </select><br>
+                <label for="grade">Grade:</label>
+                <input type="number" id="grade" name="grade" placeholder="Grade" min="0" max="100" required><br>
+                <label for="feedback">Feedback:</label>
+                <textarea id="feedback" name="feedback" placeholder="Feedback" rows="4" required></textarea><br>
+                <button type="submit">Submit Grade</button>
+            </form>
+
+        </div>
+        <div class="right-panel">
+            <h2>Notices</h2>
+            <div class="message-box">
+                <!-- Notices content goes here -->
+            </div>
+
+            <h2>Communication</h2>
+            <h3>Your Messages</h3>
+            <ul class="message-list">
+                {% for message in messages %}
+                <li class="message-item">
+                    <strong>From: {{ message[5] }}</strong> &nbsp; &nbsp;
+                    <small>{{ message[4] }}</small>
+                    <br>
+                    <strong>content:</strong>{{ message[3] }}
+                </li>
+                {% endfor %}
+            </ul>
+
+            <form action="{{ url_for('send_message') }}" method="post">
+                <label for="recipient">Recipient:</label>
+                <select name="recipient" id="recipient" required>
+                    {% for stu in student %}
+                    <option value="{{ stu[0] }}">{{ stu[1] }}</option>
+                    {% endfor %}
+                </select>
+                <label for="message">Message:</label>
+                <textarea name="message" id="message" rows="4" required></textarea>
+                <button type="submit">Send Message</button>
+            </form>
+        </div>
+    </div>
     </div>
 </body>
+
 </html>
