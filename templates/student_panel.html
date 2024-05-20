@@ -173,9 +173,9 @@
                     <td>{{ course[1] }}</td>
                     <td>{{ course[2] }}</td>
                     <td>{{ course[3] }}</td>
-                    <td>{{ 'available' if course[4] != '1' else 'not registered' }}</td>
+                    <td>{{ 'available' if course[4] != 1 else 'registered' }}</td>
                     <td>
-                        {% if course[4] != '1' %}
+                        {% if course[4] == 1 %}
                             <span>Registered</span>
                         {% else %}
                             <form action="{{ url_for('register_course') }}" method="post">
@@ -195,13 +195,20 @@
                     <th>Description</th>
                     <th>Deadline</th>
                     <th>Course</th>
+                    <th>Action</th>
                 </tr>
                 {% for assignment in assignments %}
                 <tr>
-                    <td>{{ assignment.name }}</td>
-                    <td>{{ assignment.description }}</td>
-                    <td>{{ assignment.deadline }}</td>
-                    <td>{{ assignment.course_name }}</td>
+                    <td>{{ assignment[1] }}</td>
+                    <td>{{ assignment[2] }}</td>
+                    <td>{{ assignment[3] }}</td>
+                    <td>{{ assignment[4] }}</td>
+                    <td>
+                        <form action="{{ url_for('upload_file', assignment_id=assignment[0]) }}" method="post" enctype="multipart/form-data">
+                            <input type="file" name="file">
+                            <button type="submit">Upload</button>
+                        </form>
+                    </td>
                 </tr>
                 {% endfor %}
             </table>
@@ -216,10 +223,10 @@
                 </tr>
                 {% for grade in grades %}
                 <tr>
-                    <td>{{ grade.course_name }}</td>
-                    <td>{{ grade.assignment_name }}</td>
-                    <td>{{ grade.grade }}</td>
-                    <td>{{ grade.feedback }}</td>
+                    <td>{{ grade[3] }}</td>
+                    <td>{{ grade[2] }}</td>
+                    <td>{{ grade[0] }}</td>
+                    <td>{{ grade[1] }}</td>
                 </tr>
                 {% endfor %}
             </table>

@@ -1,6 +1,6 @@
 from datetime import datetime
 import os
-from flask import Flask, flash, jsonify, render_template, request, redirect, url_for, session
+from flask import Flask, flash, jsonify, render_template, request, redirect, url_for, session, send_file
 import mysql.connector
 import hashlib
 
@@ -150,7 +150,7 @@ def instructor_panel():
         JOIN users ON student_courses.student_id = users.id
         JOIN courses ON student_courses.course_id = courses.id
         WHERE courses.teacher_id = %s
-    ''', (instructor_id,))
+    ''', (session['user_id'],))
     students = cursor.fetchall()
 
     # Fetch lectures for the courses the instructor is teaching
@@ -159,31 +159,25 @@ def instructor_panel():
         FROM lectures
         JOIN courses ON lectures.course_id = courses.id
         WHERE courses.teacher_id = %s
-    ''', (instructor_id,))
+    ''', (session['user_id'],))
     lectures = cursor.fetchall()
 
     # Fetch assignments for the courses the instructor is teaching
     cursor.execute('''
-        SELECT assignments.id, assignments.name, assignments.description, assignments.deadline, courses.name AS course_name
+        SELECT assignments.id, assignments.name, assignments.description, assignments.deadline, courses.name AS course_name,username as student_name,grades.grade,assignments.file_id
         FROM assignments
         JOIN courses ON assignments.course_id = courses.id
+        JOIN users ON assignments.student_id = users.id
+        LEFT JOIN grades ON grades.assignment_id = assignments.id
         WHERE courses.teacher_id = %s
-    ''', (instructor_id,))
+    ''', (session['user_id'],))
     assignments = cursor.fetchall()
     
-    # Fetch submissions for the assignments
-    cursor.execute('''
-        SELECT grades.id, grades.grade, grades.feedback, assignments.name AS assignment_name, users.username AS student_name
-        FROM grades
-        JOIN assignments ON grades.assignment_id = assignments.id
-        JOIN users ON grades.student_id = users.id
-        WHERE assignments.course_id IN (SELECT id FROM courses WHERE teacher_id = %s)
-    ''', (instructor_id,))
-    submissions = cursor.fetchall()
+   
     student = get_students()
     messages = get_messages(session['user_id'])
 
-    return render_template('instructor_panel.html', courses=courses, students=students, lectures=lectures,messages=messages,student=student,assignments=assignments,submissions=submissions)
+    return render_template('instructor_panel.html', courses=courses, students=students, lectures=lectures,messages=messages,student=student,assignments=assignments)
 
 @app.route('/create_lecture', methods=['POST'])
 def create_lecture():
@@ -223,6 +217,18 @@ def create_lecture():
             # Handle any exceptions that occur during database operation
             return jsonify({'error': str(e)})
      
+@app.route('/download_file/<file_id>', methods=['GET'])
+def download_file(file_id):
+    # Retrieve file path from database
+    cursor.execute("SELECT file_path FROM files WHERE id = %s", (file_id,))
+    file_path = cursor.fetchone()
+    if file_path:
+        file_path = file_path[0]
+        # Send file to user for download
+        return send_file(file_path, as_attachment=True)
+    else:
+        return jsonify({'error': 'File not found'})
+    
 @app.route('/register_course', methods=['POST'])
 def register_course():
     if 'username' not in session:
@@ -429,7 +435,7 @@ def assign_course_to_instructor():
     course_id = request.form['course_id']
 
     # Update the course record in the database to assign it to the instructor
-    cursor.execute("UPDATE courses SET instructor_id = %s WHERE id = %s", (instructor_id, course_id))
+    cursor.execute("UPDATE courses SET teacher_id = %s WHERE id = %s", (instructor_id, course_id))
     db.commit()
 
     return redirect(url_for('admin_panel'))
@@ -441,7 +447,7 @@ def register_student_for_course():
     course_id = request.form['course_id']
 
     # Insert a record into the student_course table to register the student for the course
-    cursor.execute("INSERT INTO student_course (student_id, course_id) VALUES (%s, %s)", (student_id, course_id))
+    cursor.execute("INSERT INTO student_courses (student_id, course_id) VALUES (%s, %s)", (student_id, course_id))
     db.commit()
 
     return redirect(url_for('admin_panel'))
@@ -458,8 +464,17 @@ def create_assignment():
             deadline = request.form['deadline']
             course_id = request.form['course_id']
             
-            # 在数据库中插入作业信息
-            cursor.execute("INSERT INTO assignments (name, description, deadline, course_id) VALUES (%s, %s, %s, %s)", (name, description, deadline, course_id))
+            
+            # 获取所有报名该课程的学生
+            cursor.execute("SELECT student_id FROM student_courses WHERE course_id = %s", (course_id,))
+            students = cursor.fetchall()
+            
+            # 为每个学生创建作业记录
+            for student in students:
+                cursor.execute(
+                    "INSERT INTO assignments (name, description, deadline, course_id, student_id, status) VALUES (%s, %s, %s, %s, %s, %s)",
+                    (name, description, deadline, course_id, student[0], 'pending')
+                )
             db.commit()
             
             if session.get('role') == 'admin':
@@ -469,6 +484,7 @@ def create_assignment():
         except Exception as e:
             # 处理数据库操作异常
             return jsonify({'error': str(e)})
+
 
 @app.route('/grade_submission', methods=['POST'])
 def grade_submission():
@@ -493,6 +509,36 @@ def grade_submission():
             # 处理数据库操作异常
             return jsonify({'error': str(e)})
 
+@app.route('/upload_file/<assignment_id>', methods=['POST'])
+def upload_file(assignment_id):
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file part'})
+    
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'error': 'No selected file'})
+    
+    if file:
+        # Save the file to the server
+        filename = file.filename
+        upload_folder = os.path.join(app.root_path, 'uploads')
+        if not os.path.exists(upload_folder):
+            os.makedirs(upload_folder)
+        file_path = os.path.join(upload_folder, filename)
+        file.save(file_path)
+        
+        # Update the database with the file path
+        cursor.execute("INSERT INTO files (file_path) VALUES (%s)", (file_path,))
+        db.commit()
+        
+        # Get the ID of the inserted file
+        file_id = cursor.lastrowid
+        cursor.execute("UPDATE assignments SET file_id = %s WHERE id = %s", (file_id, assignment_id))
+        db.commit()
+        
+        return redirect(url_for('student_panel'))
+    
+    return jsonify({'error': 'File upload failed'})
 
 if __name__ == '__main__':
     app.run(debug=True)
