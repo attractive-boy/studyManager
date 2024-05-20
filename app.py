@@ -7,7 +7,7 @@ import hashlib
 app = Flask(__name__)
 app.secret_key = 'secret_key'
 
-# Database connection
+
 db = mysql.connector.connect(
     host="localhost",
     user="root",
@@ -16,7 +16,7 @@ db = mysql.connector.connect(
 )
 cursor = db.cursor()
 
-# Login route
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -57,11 +57,11 @@ def admin_panel():
     if 'username' not in session or session['role'] != 'admin':
         return redirect(url_for('login'))
     
-     # Fetch all users
+     
     cursor.execute('SELECT id, username, role FROM users')
     users = cursor.fetchall()
     
-    # Fetch all courses
+    
     cursor.execute('''
         SELECT courses.id, courses.name, courses.description, users.username AS teacher_name
         FROM courses
@@ -69,7 +69,7 @@ def admin_panel():
     ''')
     courses = cursor.fetchall()
 
-    # Fetch all lectures
+    
     cursor.execute('''
         SELECT lectures.id, lectures.name, lectures.description, courses.name AS course_name
         FROM lectures
@@ -77,7 +77,7 @@ def admin_panel():
     ''')
     lectures = cursor.fetchall()
 
-    # Fetch data for rendering admin panel (instructors, students, courses)
+    
     cursor.execute("SELECT * FROM users WHERE role = 'instructor'")
     instructors = cursor.fetchall()
     
@@ -86,7 +86,7 @@ def admin_panel():
 
     return render_template('admin_panel.html', users=users, courses=courses, lectures=lectures,instructors=instructors, students=students)
 
-# User management routes
+
 @app.route('/create_user', methods=['POST'])
 def create_user():
     username = request.form['username']
@@ -104,7 +104,7 @@ def delete_user(user_id):
     db.commit()
     return redirect(url_for('admin_panel'))
 
-# Course management routes
+
 @app.route('/create_course', methods=['POST'])
 def create_course():
     name = request.form['name']
@@ -134,7 +134,7 @@ def instructor_panel():
     
     instructor_id = session['username']
     
-    # Fetch courses the instructor is teaching
+    
     cursor.execute('''
         SELECT courses.id, courses.name, courses.description
         FROM courses
@@ -143,7 +143,7 @@ def instructor_panel():
     ''', (instructor_id,))
     courses = cursor.fetchall()
     
-    # Fetch students for the courses the instructor is teaching
+    
     cursor.execute('''
         SELECT users.username, courses.name
         FROM student_courses
@@ -153,7 +153,7 @@ def instructor_panel():
     ''', (session['user_id'],))
     students = cursor.fetchall()
 
-    # Fetch lectures for the courses the instructor is teaching
+    
     cursor.execute('''
         SELECT lectures.id, lectures.name, lectures.description, courses.name AS course_name
         FROM lectures
@@ -162,7 +162,7 @@ def instructor_panel():
     ''', (session['user_id'],))
     lectures = cursor.fetchall()
 
-    # Fetch assignments for the courses the instructor is teaching
+    
     cursor.execute('''
         SELECT assignments.id, assignments.name, assignments.description, assignments.deadline, courses.name AS course_name,username as student_name,grades.grade,assignments.file_id
         FROM assignments
@@ -189,7 +189,7 @@ def create_lecture():
             description = request.form['description']
             course_id = request.form['course_id']
             
-            # Check if file_id exists in form data
+            
             if len(request.files) > 0:
                 resource_file = request.files.get("resource_file")
                 resource_dir = os.path.join(app.root_path, 'uploads')
@@ -198,11 +198,11 @@ def create_lecture():
                 resource_path = os.path.join(resource_dir, resource_file.filename)
                 resource_file.save(resource_path)
                 
-                # Store the file path in the database
+                
                 cursor.execute("INSERT INTO files (file_path) VALUES (%s)", (resource_path,))
                 db.commit()
                 
-                # Get the ID of the inserted file
+                
                 file_id = cursor.lastrowid
                 cursor.execute("INSERT INTO lectures (name, description, course_id, file_id) VALUES (%s, %s, %s, %s)", (name, description, course_id, file_id))
             else:
@@ -210,21 +210,21 @@ def create_lecture():
             db.commit()
             
             if session.get('role') == 'admin':
-                return redirect(url_for('admin_panel')) # Redirect to admin panel after creating lecture
+                return redirect(url_for('admin_panel')) 
             else:
-                return redirect(url_for('instructor_panel')) # Redirect to instructor panel after creating lecture
+                return redirect(url_for('instructor_panel')) 
         except Exception as e:
-            # Handle any exceptions that occur during database operation
+            
             return jsonify({'error': str(e)})
      
 @app.route('/download_file/<file_id>', methods=['GET'])
 def download_file(file_id):
-    # Retrieve file path from database
+    
     cursor.execute("SELECT file_path FROM files WHERE id = %s", (file_id,))
     file_path = cursor.fetchone()
     if file_path:
         file_path = file_path[0]
-        # Send file to user for download
+        
         return send_file(file_path, as_attachment=True)
     else:
         return jsonify({'error': 'File not found'})
@@ -238,7 +238,7 @@ def register_course():
     student_id = session['user_id']
     
     try:
-        # 注册课程
+        
         cursor.execute("INSERT INTO student_courses (student_id, course_id) VALUES (%s, %s)", (student_id, course_id))
         db.commit()
         flash('Successfully registered for the course!')
@@ -248,7 +248,7 @@ def register_course():
     
     return redirect(url_for('student_panel'))
 
-# Register route
+
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
@@ -278,7 +278,7 @@ def search():
     query = request.args.get('query')
     search_query = f"%{query}%"
     
-    # 搜索课程
+    
     cursor.execute("""
         SELECT c.id, c.name, c.description, u.username AS teacher_name 
         FROM courses c 
@@ -287,7 +287,7 @@ def search():
     """, (search_query, search_query))
     courses = cursor.fetchall()
     
-    # 搜索讲座
+    
     cursor.execute("""
         SELECT l.id, l.name, l.description, c.name AS course_name 
         FROM lectures l 
@@ -296,7 +296,7 @@ def search():
     """, (search_query, search_query))
     lectures = cursor.fetchall()
     
-    # 搜索用户
+    
     cursor.execute("""
         SELECT id, username 
         FROM users 
@@ -306,10 +306,10 @@ def search():
     
     return render_template('search_results.html', query=query, courses=courses, lectures=lectures, users=users)
 
-# 查询当前用户的课程、作业、成绩和教师列表
+
 def get_student_info(student_id):
 
-    # 查询课程
+    
     cursor.execute('''
         SELECT courses.id, courses.name, courses.description, users.username AS teacher_name
         FROM student_courses
@@ -319,7 +319,7 @@ def get_student_info(student_id):
     ''', (student_id,))
     courses = cursor.fetchall()
 
-    # 查询作业
+    
     cursor.execute('''
         SELECT assignments.id, assignments.name, assignments.description, assignments.deadline, courses.name AS course_name
         FROM assignments
@@ -329,7 +329,7 @@ def get_student_info(student_id):
     ''', (student_id,))
     assignments = cursor.fetchall()
 
-    # 查询成绩
+    
     cursor.execute('''
         SELECT grades.grade, grades.feedback, assignments.name AS assignment_name, courses.name AS course_name
         FROM grades
@@ -341,7 +341,7 @@ def get_student_info(student_id):
 
     return courses, assignments, grades
 
-# 获取所有可用的课程
+
 def get_courses_with_registration_status(student_id):
     cursor.execute('''
         SELECT c.id, c.name, c.description, u.username AS teacher_name,
@@ -354,7 +354,7 @@ def get_courses_with_registration_status(student_id):
 
     return courses
 
-# 获取教师列表
+
 def get_teachers():
 
     cursor.execute("SELECT * FROM users WHERE role = 'instructor'")
@@ -374,7 +374,7 @@ def get_students():
 
     return students
 
-# 查询用户收到的消息
+
 def get_messages(user_id):
 
     query = """
@@ -388,7 +388,7 @@ def get_messages(user_id):
 
     return messages
 
-# 处理发送消息的表单提交
+
 @app.route('/send_message', methods=['POST'])
 def send_message():
     if 'username' not in session:
@@ -399,7 +399,7 @@ def send_message():
     message_content = request.form['message']
     timestamp = datetime.now()
 
-    # Fetch user role from the database
+    
     cursor.execute("SELECT role FROM users WHERE id = %s", (sender_id,))
     sender_role = cursor.fetchone()[0]
 
@@ -413,7 +413,7 @@ def send_message():
     else:
         return redirect(url_for('student_panel'))
 
-# 学生面板页面
+
 @app.route('/student_panel')
 def student_panel():
     if 'username' not in session:
@@ -428,25 +428,25 @@ def student_panel():
     return render_template('student_panel.html', courses=courses, assignments=assignments, grades=grades,
                            available_courses=available_courses, teachers=teachers, messages=messages)
 
-# Route for assigning courses to instructors
+
 @app.route('/assign_course_to_instructor', methods=['POST'])
 def assign_course_to_instructor():
     instructor_id = request.form['instructor_id']
     course_id = request.form['course_id']
 
-    # Update the course record in the database to assign it to the instructor
+    
     cursor.execute("UPDATE courses SET teacher_id = %s WHERE id = %s", (instructor_id, course_id))
     db.commit()
 
     return redirect(url_for('admin_panel'))
 
-# Route for registering students for courses
+
 @app.route('/register_student_for_course', methods=['POST'])
 def register_student_for_course():
     student_id = request.form['student_id']
     course_id = request.form['course_id']
 
-    # Insert a record into the student_course table to register the student for the course
+    
     cursor.execute("INSERT INTO student_courses (student_id, course_id) VALUES (%s, %s)", (student_id, course_id))
     db.commit()
 
@@ -465,11 +465,11 @@ def create_assignment():
             course_id = request.form['course_id']
             
             
-            # 获取所有报名该课程的学生
+            
             cursor.execute("SELECT student_id FROM student_courses WHERE course_id = %s", (course_id,))
             students = cursor.fetchall()
             
-            # 为每个学生创建作业记录
+            
             for student in students:
                 cursor.execute(
                     "INSERT INTO assignments (name, description, deadline, course_id, student_id, status) VALUES (%s, %s, %s, %s, %s, %s)",
@@ -478,11 +478,11 @@ def create_assignment():
             db.commit()
             
             if session.get('role') == 'admin':
-                return redirect(url_for('admin_panel')) # 创建作业成功后重定向到管理员面板页面
+                return redirect(url_for('admin_panel')) 
             else:
-                return redirect(url_for('instructor_panel')) # 创建作业成功后重定向到讲师面板页面
+                return redirect(url_for('instructor_panel')) 
         except Exception as e:
-            # 处理数据库操作异常
+            
             return jsonify({'error': str(e)})
 
 
@@ -497,16 +497,16 @@ def grade_submission():
             grade = request.form['grade']
             feedback = request.form['feedback']
             
-            # 在数据库中插入评分和反馈信息
+            
             cursor.execute("INSERT INTO grades (student_id, assignment_id, grade, feedback) VALUES (%s, %s, %s, %s)", (student_id, assignment_id, grade, feedback))
             db.commit()
             
             if session.get('role') == 'admin':
-                return redirect(url_for('admin_panel')) # 提交评分成功后重定向到管理员面板页面
+                return redirect(url_for('admin_panel')) 
             else:
-                return redirect(url_for('instructor_panel')) # 提交评分成功后重定向到讲师面板页面
+                return redirect(url_for('instructor_panel')) 
         except Exception as e:
-            # 处理数据库操作异常
+            
             return jsonify({'error': str(e)})
 
 @app.route('/upload_file/<assignment_id>', methods=['POST'])
@@ -519,7 +519,7 @@ def upload_file(assignment_id):
         return jsonify({'error': 'No selected file'})
     
     if file:
-        # Save the file to the server
+        
         filename = file.filename
         upload_folder = os.path.join(app.root_path, 'uploads')
         if not os.path.exists(upload_folder):
@@ -527,11 +527,11 @@ def upload_file(assignment_id):
         file_path = os.path.join(upload_folder, filename)
         file.save(file_path)
         
-        # Update the database with the file path
+        
         cursor.execute("INSERT INTO files (file_path) VALUES (%s)", (file_path,))
         db.commit()
         
-        # Get the ID of the inserted file
+        
         file_id = cursor.lastrowid
         cursor.execute("UPDATE assignments SET file_id = %s WHERE id = %s", (file_id, assignment_id))
         db.commit()

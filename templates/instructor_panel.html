@@ -206,7 +206,7 @@
             </table>
             
             <h2>Lectures List</h2>
-            <!-- Button to open lecture creation dialog -->
+            
             <button id="openLectureDialog" style="margin-bottom: 20px;">Create Lecture</button>
             <table>
                 <tr>
@@ -284,7 +284,7 @@
     </div>
     </div>
 
-    <!-- Lecture Dialog -->
+    
     <dialog id="lectureDialog">
         <span class="close" id="closeLectureDialog">&times;</span>
         <form action="{{ url_for('create_lecture') }}" method="post" enctype="multipart/form-data">
@@ -304,7 +304,7 @@
         </form>
     </dialog>
 
-    <!-- Assignment Dialog -->
+    
     <dialog id="assignmentDialog">
         <span class="close" id="closeAssignmentDialog">&times;</span>
         <form action="{{ url_for('create_assignment') }}" method="post">
@@ -324,7 +324,7 @@
         </form>
     </dialog>
 
-    <!-- Grade Submission Dialog -->
+    
     <dialog id="gradeSubmissionDialog">
         <span class="close" id="closeGradeSubmissionDialog">&times;</span>
         <form action="{{ url_for('grade_submission') }}" method="post">
@@ -349,22 +349,22 @@
     </dialog>
 
     <script>
-        // Get the dialog elements
+        
         const lectureDialog = document.getElementById('lectureDialog');
         const assignmentDialog = document.getElementById('assignmentDialog');
         const gradeSubmissionDialog = document.getElementById('gradeSubmissionDialog');
 
-        // Get the buttons that opens the dialogs
+        
         const openLectureBtn = document.getElementById('openLectureDialog');
         const openAssignmentBtn = document.getElementById('openAssignmentDialog');
         const openGradeSubmissionBtn = document.getElementById('openGradeSubmissionDialog');
 
-        // Get the close buttons for dialogs
+        
         const closeLectureBtn = document.getElementById('closeLectureDialog');
         const closeAssignmentBtn = document.getElementById('closeAssignmentDialog');
         const closeGradeSubmissionBtn = document.getElementById('closeGradeSubmissionDialog');
 
-        // When the user clicks the button, open the dialogs
+        
         openLectureBtn.addEventListener('click', () => {
             lectureDialog.showModal();
         });
@@ -377,7 +377,7 @@
             gradeSubmissionDialog.showModal();
         });
 
-        // When the user clicks on close button, close the dialogs
+        
         closeLectureBtn.addEventListener('click', () => {
             lectureDialog.close();
         });
@@ -390,7 +390,7 @@
             gradeSubmissionDialog.close();
         });
 
-        // When the user clicks anywhere outside of the dialog, close it
+        
         window.addEventListener('click', (event) => {
             if (event.target == lectureDialog) {
                 lectureDialog.close();
