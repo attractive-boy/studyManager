@@ -5,172 +5,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Instructor Panel</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: #f3f3f3;
-        }
-
-        .container {
-            width: 1200px;
-            margin: 20px auto;
-            padding: 20px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            background-color: #fff;
-            display: flex;
-            flex-direction: row;
-        }
-
-        h1,
-        h2 {
-            text-align: center;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 20px;
-        }
-
-        table,
-        th,
-        td {
-            border: 1px solid #ddd;
-        }
-
-        th,
-        td {
-            padding: 12px;
-            text-align: left;
-        }
-
-        th {
-            background-color: #f2f2f2;
-        }
-
-        form {
-            margin-bottom: 20px;
-        }
-
-        label {
-            display: block;
-            margin-bottom: 5px;
-        }
-
-        input[type="text"],
-        input[type="datetime-local"],
-        input[type="number"],
-        textarea,
-        select,
-        input[type="file"] {
-            width: calc(100% - 24px);
-            padding: 10px;
-            margin-bottom: 10px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            box-sizing: border-box;
-        }
-
-        button[type="submit"] {
-            background-color: #4CAF50;
-            color: white;
-            padding: 14px 20px;
-            margin: 8px 0;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            width: 100%;
-            font-size: 16px;
-        }
-
-        button[type="submit"]:hover {
-            background-color: #45a049;
-        }
-
-        .search-container {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-
-        .search-container input[type="text"] {
-            padding: 10px;
-            font-size: 16px;
-            width: 80%;
-            box-sizing: border-box;
-        }
-        button {
-            padding: 10px 20px;
-            font-size: 16px;
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            display: inline-block;
-            width: 100%;
-        }
-        .search-container button {
-            padding: 10px 20px;
-            font-size: 16px;
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            display: inline-block;
-            width: 15%;
-        }
-
-        .search-container button:hover {
-            background-color: #45a049;
-        }
-
-        .left {
-            width: 800px;
-            margin-right: 50px;
-        }
-
-        .right {
-            width: 500px;
-        }
-
-        .right-panel {
-            flex: 1;
-            padding-left: 20px;
-            border-left: 1px solid #ddd;
-        }
-
-        /* Dialog style */
-        dialog {
-            padding: 20px;
-            border: none;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-            width: 80%;
-            max-width: 500px;
-        }
-
-        dialog::backdrop {
-            background: rgba(0, 0, 0, 0.5);
-        }
-
-        .close {
-            float: right;
-            font-size: 28px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-
-    </style>
 </head>
 
 <body>
     <div class="container">
         <div class="left">
-            <h1>Welcome, {{ session.username }}</h1>
             <div class="search-container">
                 <form action="{{ url_for('search') }}" method="get">
                     <input type="text" name="query" placeholder="Search for courses, lectures, or users" required>
@@ -206,8 +45,7 @@
             </table>
             
             <h2>Lectures List</h2>
-            
-            <button id="openLectureDialog" style="margin-bottom: 20px;">Create Lecture</button>
+            <button id="openLectureDialog" class="btn" style="margin-bottom: 20px;">Create Lecture</button>
             <table>
                 <tr>
                     <th>Lecture Name</th>
@@ -222,9 +60,10 @@
                 </tr>
                 {% endfor %}
             </table>
+
             <h2>Assignment List</h2>
-            <button id="openAssignmentDialog" style="margin-bottom: 20px;">Create Assignment</button>
-            <button id="openGradeSubmissionDialog" style="margin-bottom: 20px;">Grade Submission</button>
+            <button id="openAssignmentDialog" class="btn" style="margin-bottom: 20px;">Create Assignment</button>
+            <button id="openGradeSubmissionDialog" class="btn" style="margin-bottom: 20px;">Grade Submission</button>
             <table>
                 <tr>
                     <th>Assignment Name</th>
@@ -243,21 +82,20 @@
                     <td>{{ assignment[4] }}</td>
                     <td>{{ assignment[5] }}</td>
                     <td>{{ assignment[6] }}</td>
-                        <td>
-                            {% if assignment[7] %}
-        <form action="{{ url_for('download_file', file_id=assignment[7] ) }}" method="get">
-            <button type="submit">Download</button>
-        </form>
-    {% else %}
-        <p>No file</p>
-    {% endif %}
-                        </td>
+                    <td>
+                        {% if assignment[7] %}
+                        <form action="{{ url_for('download_file', file_id=assignment[7]) }}" method="get">
+                            <button type="submit">Download</button>
+                        </form>
+                        {% else %}
+                        <p>No file</p>
+                        {% endif %}
+                    </td>
                 </tr>
                 {% endfor %}
             </table>
-
         </div>
-        <div class="right-panel">
+        <div class="right right-panel">
             <h2>Communication</h2>
             <h3>Your Messages</h3>
             <ul class="message-list">
@@ -282,49 +120,45 @@
             </form>
         </div>
     </div>
-    </div>
 
-    
     <dialog id="lectureDialog">
         <span class="close" id="closeLectureDialog">&times;</span>
         <form action="{{ url_for('create_lecture') }}" method="post" enctype="multipart/form-data">
             <label for="lecture_name">Lecture Name:</label>
-            <input type="text" id="lecture_name" name="name" placeholder="Lecture Name" required><br>
+            <input type="text" id="lecture_name" name="name" placeholder="Lecture Name" required>
             <label for="lecture_description">Lecture Description:</label>
-            <textarea id="lecture_description" name="description" placeholder="Lecture Description" rows="4" required></textarea><br>
+            <textarea id="lecture_description" name="description" placeholder="Lecture Description" rows="4" required></textarea>
             <label for="lecture_course">Course:</label>
             <select id="lecture_course" name="course_id" required>
                 {% for course in courses %}
                 <option value="{{ course[0] }}">{{ course[1] }}</option>
                 {% endfor %}
-            </select><br>
+            </select>
             <label for="resource_file">Upload Resource:</label>
-            <input type="file" id="resource_file" name="resource_file" required><br>
+            <input type="file" id="resource_file" name="resource_file" required>
             <button type="submit">Create Lecture</button>
         </form>
     </dialog>
 
-    
     <dialog id="assignmentDialog">
         <span class="close" id="closeAssignmentDialog">&times;</span>
         <form action="{{ url_for('create_assignment') }}" method="post">
             <label for="assignment_name">Assignment Name:</label>
-            <input type="text" id="assignment_name" name="name" placeholder="Assignment Name" required><br>
+            <input type="text" id="assignment_name" name="name" placeholder="Assignment Name" required>
             <label for="assignment_description">Assignment Description:</label>
-            <textarea id="assignment_description" name="description" placeholder="Assignment Description" rows="4" required></textarea><br>
+            <textarea id="assignment_description" name="description" placeholder="Assignment Description" rows="4" required></textarea>
             <label for="assignment_deadline">Deadline:</label>
-            <input type="datetime-local" id="assignment_deadline" name="deadline" required><br>
+            <input type="datetime-local" id="assignment_deadline" name="deadline" required>
             <label for="assignment_course">Course:</label>
             <select id="assignment_course" name="course_id" required>
                 {% for course in courses %}
                 <option value="{{ course[0] }}">{{ course[1] }}</option>
                 {% endfor %}
-            </select><br>
+            </select>
             <button type="submit">Create Assignment</button>
         </form>
     </dialog>
 
-    
     <dialog id="gradeSubmissionDialog">
         <span class="close" id="closeGradeSubmissionDialog">&times;</span>
         <form action="{{ url_for('grade_submission') }}" method="post">
@@ -333,38 +167,34 @@
                 {% for stu in student %}
                 <option value="{{ stu[0] }}">{{ stu[1] }}</option>
                 {% endfor %}
-            </select><br>
+            </select>
             <label for="assignment_id">Assignment:</label>
             <select id="assignment_id" name="assignment_id" required>
                 {% for assignment in assignments %}
                 <option value="{{ assignment[0] }}">{{ assignment[1] }}</option>
                 {% endfor %}
-            </select><br>
+            </select>
             <label for="grade">Grade:</label>
-            <input type="number" id="grade" name="grade" placeholder="Grade" min="0" max="100" required><br>
+            <input type="number" id="grade" name="grade" placeholder="Grade" min="0" max="100" required>
             <label for="feedback">Feedback:</label>
-            <textarea id="feedback" name="feedback" placeholder="Feedback" rows="4" required></textarea><br>
+            <textarea id="feedback" name="feedback" placeholder="Feedback" rows="4" required></textarea>
             <button type="submit">Submit Grade</button>
         </form>
     </dialog>
 
     <script>
-        
         const lectureDialog = document.getElementById('lectureDialog');
         const assignmentDialog = document.getElementById('assignmentDialog');
         const gradeSubmissionDialog = document.getElementById('gradeSubmissionDialog');
 
-        
         const openLectureBtn = document.getElementById('openLectureDialog');
         const openAssignmentBtn = document.getElementById('openAssignmentDialog');
         const openGradeSubmissionBtn = document.getElementById('openGradeSubmissionDialog');
 
-        
         const closeLectureBtn = document.getElementById('closeLectureDialog');
         const closeAssignmentBtn = document.getElementById('closeAssignmentDialog');
         const closeGradeSubmissionBtn = document.getElementById('closeGradeSubmissionDialog');
 
-        
         openLectureBtn.addEventListener('click', () => {
             lectureDialog.showModal();
         });
@@ -377,7 +207,6 @@
             gradeSubmissionDialog.showModal();
         });
 
-        
         closeLectureBtn.addEventListener('click', () => {
             lectureDialog.close();
         });
@@ -390,15 +219,14 @@
             gradeSubmissionDialog.close();
         });
 
-        
         window.addEventListener('click', (event) => {
-            if (event.target == lectureDialog) {
+            if (event.target === lectureDialog) {
                 lectureDialog.close();
             }
-            if (event.target == assignmentDialog) {
+            if (event.target === assignmentDialog) {
                 assignmentDialog.close();
             }
-            if (event.target == gradeSubmissionDialog) {
+            if (event.target === gradeSubmissionDialog) {
                 gradeSubmissionDialog.close();
             }
         });
@@ -406,4 +234,3 @@
 </body>
 
 </html>
-
